@@ -77,9 +77,7 @@ import { UserIdentityModel } from './identity/models/identity.model';
           username: configService.getOrThrow('PGUSER'),
           password: configService.getOrThrow('PGPASSWORD'),
           database: configService.getOrThrow('PGDATABASE'),
-          models: [
-            UserIdentityModel,
-          ],
+          models: [UserIdentityModel],
           autoLoadModels: true,
           synchronize: true,
           pool: {
@@ -89,8 +87,8 @@ import { UserIdentityModel } from './identity/models/identity.model';
             acquire: configService.getOrThrow<number>('db.pool.acquireTimeout'),
           },
           dialectOptions: {
-            ssl: true
-          }
+            ssl: true,
+          },
         };
       },
     }),
