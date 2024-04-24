@@ -4,6 +4,7 @@ import { APIResponseBuilder } from 'src/common/utils/api-response-builder';
 import { UserIdentityDTO } from './dto/user-identify.dto';
 import { IdentityPrecedenceEnum } from './constant/enum';
 import { Op } from 'sequelize';
+import { normalizeResponse } from './utils';
 
 @Injectable()
 export class IdentityService {
@@ -27,13 +28,23 @@ export class IdentityService {
 
     // CASE1: New User
     if (existingIdentites.length == 0) {
-      await UserIdentityModel.create({
+      const createdIdentity = await UserIdentityModel.create({
         email,
         phoneNumber,
         linkPrecedence: IdentityPrecedenceEnum.PRIMARY,
       });
 
-      return APIResponseBuilder.success({}, 'Created new Primary User').build();
+      return APIResponseBuilder.success(
+        {
+          contact: {
+            primaryContatctId: createdIdentity.id,
+            emails: normalizeResponse([createdIdentity.email]),
+            phoneNumbers: normalizeResponse([createdIdentity.phoneNumber]),
+            secondaryContactIds: [],
+          },
+        },
+        'Created new Primary User',
+      ).build();
     }
 
     // CASE2: Has 1 Existing User
@@ -48,14 +59,24 @@ export class IdentityService {
         (existingIdentity.email == email && phoneNumber == null) ||
         (existingIdentity.phoneNumber == phoneNumber && email == null)
       ) {
-        return APIResponseBuilder.success({}, 'Existing user').build();
+        return APIResponseBuilder.success(
+          {
+            contact: {
+              primaryContatctId: existingIdentity.id,
+              emails: normalizeResponse([existingIdentity.email]),
+              phoneNumbers: normalizeResponse([existingIdentity.phoneNumber]),
+              secondaryContactIds: [],
+            },
+          },
+          'Existing user',
+        ).build();
       }
 
       // SUBCASE2.2: Has 1 Existing User, Only one of email/phone matched
       existingIdentity.linkPrecedence = IdentityPrecedenceEnum.PRIMARY;
       await existingIdentity.save();
 
-      await UserIdentityModel.create({
+      const createdIdentity = await UserIdentityModel.create({
         email,
         phoneNumber,
         linkPrecedence: IdentityPrecedenceEnum.SECONDARY,
@@ -63,7 +84,20 @@ export class IdentityService {
       });
 
       return APIResponseBuilder.success(
-        {},
+        {
+          contact: {
+            primaryContatctId: existingIdentity.id,
+            emails: normalizeResponse([
+              existingIdentity.email,
+              createdIdentity.email,
+            ]),
+            phoneNumbers: normalizeResponse([
+              existingIdentity.phoneNumber,
+              createdIdentity.email,
+            ]),
+            secondaryContactIds: [createdIdentity.id],
+          },
+        },
         'Created new secondary User',
       ).build();
     }
@@ -78,7 +112,31 @@ export class IdentityService {
         (existingIdentity.email == email && phoneNumber == null) ||
         (existingIdentity.phoneNumber == phoneNumber && email == null)
       ) {
-        return APIResponseBuilder.success({}, 'Existing user').build();
+        return APIResponseBuilder.success(
+          {
+            contact: {
+              primaryContatctId: existingIdentity.id,
+              emails: normalizeResponse([
+                existingIdentity.email,
+                ...existingIdentites.map(identity => identity?.email),
+              ]),
+              phoneNumbers: normalizeResponse([
+                existingIdentity.phoneNumber,
+                ...existingIdentites.map(identity => identity?.phoneNumber),
+              ]),
+              secondaryContactIds: [
+                ...existingIdentites
+                  .filter(
+                    identity =>
+                      identity.linkPrecedence ===
+                      IdentityPrecedenceEnum.SECONDARY,
+                  )
+                  .map(identity => identity?.id),
+              ],
+            },
+          },
+          'Existing user',
+        ).build();
       }
     }
 
@@ -102,11 +160,31 @@ export class IdentityService {
       existingIdentity.linkPrecedence = IdentityPrecedenceEnum.SECONDARY;
       existingIdentity.linkedId = oldestIdentity.id;
       await existingIdentity.save();
-
-      return APIResponseBuilder.success(
-        {},
-        'Updated one as primary, rest as secondary',
-      ).build();
     }
+
+    return APIResponseBuilder.success(
+      {
+        contact: {
+          primaryContatctId: oldestIdentity.id,
+          emails: normalizeResponse([
+            oldestIdentity.email,
+            ...existingIdentites.map(identity => identity?.email),
+          ]),
+          phoneNumbers: normalizeResponse([
+            oldestIdentity.phoneNumber,
+            ...existingIdentites.map(identity => identity?.phoneNumber),
+          ]),
+          secondaryContactIds: [
+            ...existingIdentites
+              .filter(
+                identity =>
+                  identity.linkPrecedence === IdentityPrecedenceEnum.SECONDARY,
+              )
+              .map(identity => identity?.id),
+          ],
+        },
+      },
+      'Updated one as primary, rest as secondary',
+    ).build();
   }
 }
