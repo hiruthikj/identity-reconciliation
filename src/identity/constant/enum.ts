@@ -1,4 +1,4 @@
 export enum IdentityPrecedenceEnum {
-    PRIMARY = "primary",
-    SECONDARY = "secondary",
+  PRIMARY = 'primary',
+  SECONDARY = 'secondary',
 }

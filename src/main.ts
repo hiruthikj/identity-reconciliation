@@ -21,7 +21,7 @@ async function bootstrap() {
     // .addTag('')
     .build();
   const document = SwaggerModule.createDocument(app, config);
-  const swaggerPath = 'docs'; 
+  const swaggerPath = 'docs';
   SwaggerModule.setup(swaggerPath, app, document);
 
   const PORT = 3000;
@@ -29,6 +29,9 @@ async function bootstrap() {
   Logger.log(`Server started! Listening to port: ${PORT}`, 'Bootstrap');
 
   // TODO: Better
-  Logger.log(`Swagger Docs at http://localhost:${PORT}/${swaggerPath}`, 'Bootstrap');
+  Logger.log(
+    `Swagger Docs at http://localhost:${PORT}/${swaggerPath}`,
+    'Bootstrap',
+  );
 }
 bootstrap();
