@@ -8,6 +8,8 @@ import { HealthController } from './health/health.controller';
 import { TerminusModule } from '@nestjs/terminus';
 import { HealthModule } from './health/health.module';
 import { SequelizeModule } from '@nestjs/sequelize';
+import { IdentityModule } from './identity/identity.module';
+import { UserIdentityModel } from './identity/models/identity.model';
 
 @Module({
   imports: [
@@ -75,9 +77,11 @@ import { SequelizeModule } from '@nestjs/sequelize';
           username: configService.getOrThrow('PGUSER'),
           password: configService.getOrThrow('PGPASSWORD'),
           database: configService.getOrThrow('PGDATABASE'),
-          models: [],
+          models: [
+            UserIdentityModel,
+          ],
           autoLoadModels: true,
-          synchronize: false,
+          synchronize: true,
           pool: {
             max: configService.getOrThrow<number>('db.pool.max'),
             min: configService.getOrThrow<number>('db.pool.min'),
@@ -90,6 +94,7 @@ import { SequelizeModule } from '@nestjs/sequelize';
         };
       },
     }),
+    IdentityModule,
   ],
   controllers: [AppController, HealthController],
   providers: [Logger],
