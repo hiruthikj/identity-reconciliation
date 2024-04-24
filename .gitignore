@@ -1,0 +1,47 @@
+# Ignore operating system files
+.DS_Store
+
+# Ignore build and compiled files
+/build/
+/dist/
+
+# Ignore node_modules directory for Node.js projects
+node_modules/
+
+# Ignore environment-specific files
+.env
+.env.local
+.env.*.local
+
+# Ignore log files and other local temporary files
+*.log
+npm-debug.log*
+
+# Ignore local configuration files
+/.vscode/
+/.idea/
+
+# Ignore compiled Python files
+__pycache__/
+*.pyc
+
+# Ignore compiled Java classes
+*.class
+
+# Ignore compiled C++ files
+*.out
+
+# Ignore editor-specific files
+*.sublime-project
+*.sublime-workspace
+*.idea/
+.vscode/
+
+# Ignore macOS directory attributes
+.DS_Store
+
+# Ignore user-specific files
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
