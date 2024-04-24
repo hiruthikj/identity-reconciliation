@@ -25,7 +25,7 @@ export class IdentityService {
       phoneNumber,
     );
 
-    // CASE: New User
+    // CASE1: New User
     if (existingIdentites.length == 0) {
       await UserIdentityModel.create({
         email,
@@ -36,19 +36,22 @@ export class IdentityService {
       return APIResponseBuilder.success({}, 'Created new Primary User').build();
     }
 
-    // CASE: Has 1 Existing User
+    // CASE2: Has 1 Existing User
     if (existingIdentites.length == 1) {
       const existingIdentity = existingIdentites[0];
 
-      // SUBCASE: Has 1 Existing User, both email&phone matched
+      // SUBCASE2.1: Has 1 Existing User, both email&phone matched
       if (
-        existingIdentity.email == email &&
-        existingIdentity.phoneNumber == phoneNumber
+        (existingIdentity.email == email &&
+          existingIdentity.phoneNumber == phoneNumber) ||
+        // Handle case where Input has null sent for email/phone
+        (existingIdentity.email == email && phoneNumber == null) ||
+        (existingIdentity.phoneNumber == phoneNumber && email == null)
       ) {
         return APIResponseBuilder.success({}, 'Existing user').build();
       }
 
-      // SUBCASE: Has 1 Existing User, Only one of email/phone matched
+      // SUBCASE2.2: Has 1 Existing User, Only one of email/phone matched
       existingIdentity.linkPrecedence = IdentityPrecedenceEnum.PRIMARY;
       await existingIdentity.save();
 
@@ -64,32 +67,45 @@ export class IdentityService {
         'Created new secondary User',
       ).build();
     }
-    // CASE: Has more than 1 Existing User
 
+    // CASE3: Has more than 1 Existing User
     for (const existingIdentity of existingIdentites) {
-      // SUBCASE: Has more than 1 Existing User, both email&phone matched
+      // SUBCASE3.1: Has more than 1 Existing User, both email&phone matched
       if (
-        existingIdentity.email == email &&
-        existingIdentity.phoneNumber == phoneNumber
+        (existingIdentity.email == email &&
+          existingIdentity.phoneNumber == phoneNumber) ||
+        // Handle case where Input has null sent for email/phone
+        (existingIdentity.email == email && phoneNumber == null) ||
+        (existingIdentity.phoneNumber == phoneNumber && email == null)
       ) {
         return APIResponseBuilder.success({}, 'Existing user').build();
       }
     }
 
-    for (const existingIdentity of existingIdentites) {
-      // SUBCASE: Has more than 1 Existing User, Only one of email/phone matched
-      existingIdentity.linkPrecedence = IdentityPrecedenceEnum.PRIMARY;
-      await existingIdentity.save();
+    existingIdentites.sort(
+      (identity1: any, identity2: any) =>
+        new Date(identity1?.createdAt) > new Date(identity2?.createdAt)
+          ? 1
+          : -1,
+      // identity1?.createdAt
+      //   .toString()
+      //   .localeCompare(identity2?.createdAt.toString()),
+    );
 
-      await UserIdentityModel.create({
-        email,
-        phoneNumber,
-        linkPrecedence: IdentityPrecedenceEnum.SECONDARY,
-      });
+    // SUBCASE3.2: Has more than 1 Existing User, Only one of email/phone matched
+    // Means oldest will be primary, rest become secondary
+    const oldestIdentity = existingIdentites.shift();
+    oldestIdentity.linkPrecedence = IdentityPrecedenceEnum.PRIMARY;
+    await oldestIdentity.save();
+
+    for (const existingIdentity of existingIdentites) {
+      existingIdentity.linkPrecedence = IdentityPrecedenceEnum.SECONDARY;
+      existingIdentity.linkedId = oldestIdentity.id;
+      await existingIdentity.save();
 
       return APIResponseBuilder.success(
         {},
-        'Created new secondary User',
+        'Updated one as primary, rest as secondary',
       ).build();
     }
   }
